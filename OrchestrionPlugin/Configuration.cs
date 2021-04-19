@@ -15,6 +15,9 @@ namespace OrchestrionPlugin
 
         public bool UseOldPlayback { get; set; } = false;
         public int TargetPriority { get; set; } = 0;
+        public Dictionary<int, HashSet<int>> SongReplacements = new Dictionary<int, HashSet<int>>();
+        public bool DisplayAreaBGMChanged = true;
+        public bool EnableReplacer = true;
 
         public HashSet<int> FavoriteSongs { get; internal set; } = new HashSet<int>();
 

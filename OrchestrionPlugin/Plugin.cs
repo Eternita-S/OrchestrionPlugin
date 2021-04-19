@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Linq;
 
 namespace OrchestrionPlugin
 {
@@ -22,10 +23,11 @@ namespace OrchestrionPlugin
         private const string songListFile = "xiv_bgm.csv";
         private const string commandName = "/porch";
 
-        private DalamudPluginInterface pi;
-        private Configuration configuration;
-        private SongList songList;
-        private BGMControl bgmControl;
+        internal DalamudPluginInterface pi;
+        internal Configuration configuration;
+        internal SongList songList;
+        internal BGMControl bgmControl;
+        internal SongReplacementList songReplacementCfg;
         private string localDir;
         //private SeString nowPlayingString;
         //private TextPayload currentSongPayload;
@@ -37,8 +39,8 @@ namespace OrchestrionPlugin
             this.configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             this.configuration.Initialize(pluginInterface);
             this.enableFallbackPlayer = this.configuration.UseOldPlayback;
-
-            this.localDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            
+            this.localDir = Path.GetDirectoryName("Y:\\Users\\LSS\\source\\repos\\OrchestrionPlugin\\OrchestrionPlugin\\bin\\Debug\\"/*Assembly.GetExecutingAssembly().Location*/);
 
             var songlistPath = Path.Combine(this.localDir, songListFile);
             this.songList = new SongList(songlistPath, this.configuration, this, this);
@@ -51,6 +53,7 @@ namespace OrchestrionPlugin
                 addressResolver.Setup(pluginInterface.TargetModuleScanner);
                 this.bgmControl = new BGMControl(addressResolver);
                 this.bgmControl.OnSongChanged += HandleSongChanged;
+                this.bgmControl.OnSongChanged2 += HandleSongChanged2;
                 this.bgmControl.StartUpdate();
             }
             catch (Exception e)
@@ -83,6 +86,7 @@ namespace OrchestrionPlugin
             pluginInterface.UiBuilder.OnBuildUi += Display;
 
             pluginInterface.UiBuilder.OnOpenConfigUi += (sender, args) => this.songList.SettingsVisible = true;
+            this.songReplacementCfg = new SongReplacementList(this);
         }
 
         public void Dispose()
@@ -93,6 +97,8 @@ namespace OrchestrionPlugin
             this.pi.UiBuilder.OnBuildUi -= Display;
             this.pi.CommandManager.RemoveHandler(commandName);
 
+            this.songReplacementCfg.Dispose();
+
             this.pi.Dispose();
         }
 
@@ -102,6 +108,10 @@ namespace OrchestrionPlugin
             {
                 this.songList.AllowDebug = !this.songList.AllowDebug;
                 this.pi.Framework.Gui.Chat.Print($"Orchestrion debug options have been {(this.songList.AllowDebug ? "enabled" : "disabled")}.");
+            }
+            else if (!string.IsNullOrEmpty(args) && args.Split(' ')[0].ToLowerInvariant() == "r")
+            {
+                this.songReplacementCfg.open = true;                
             }
             else
             {
@@ -147,6 +157,28 @@ namespace OrchestrionPlugin
             }
         }
 
+        internal void HandleSongChanged2(ushort songId)
+        {
+            if (!configuration.EnableReplacer) return;
+            //if (configuration.DisplayAreaBGMChanged) pi.Framework.Gui.Chat.Print("Area song: "+songList.GetSongTitle(songId));
+            if (!this.IsUserSelected)
+            {
+                if (configuration.SongReplacements.ContainsKey(songId))
+                {
+                    var randomId = configuration.SongReplacements[songId].ElementAt(new Random().Next(0, configuration.SongReplacements[songId].Count));
+                    PlaySong(randomId);
+                    if (configuration.DisplayAreaBGMChanged)
+                    {
+                        pi.Framework.Gui.Toast.ShowQuest("Song replaced from [" + songList.GetSongTitle(songId) + "] to [" + songList.GetSongTitle((ushort)randomId) + "]");
+                    }
+                }
+                else if(bgmControl.CurrentSongId != bgmControl.CurrentSongId2)
+                {
+                    StopSong();
+                }
+            }
+        }
+
         #region IPlaybackController
 
         private bool enableFallbackPlayer;
@@ -169,6 +201,8 @@ namespace OrchestrionPlugin
         }
 
         public int CurrentSong => EnableFallbackPlayer ? 0 : this.bgmControl.CurrentSongId;
+
+        public bool IsUserSelected { get; set; } = false;
 
         public void PlaySong(int songId)
         {

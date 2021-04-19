@@ -17,7 +17,7 @@ namespace OrchestrionPlugin
 
     class SongList : IDisposable
     {
-        private Dictionary<int, Song> songs = new Dictionary<int, Song>();
+        internal Dictionary<int, Song> songs = new Dictionary<int, Song>();
         private Configuration configuration;
         private IPlaybackController controller;
         private IResourceLoader loader;
@@ -97,11 +97,13 @@ namespace OrchestrionPlugin
 
         private void Play(int songId)
         {
+            controller.IsUserSelected = true;
             this.controller.PlaySong(songId);
         }
 
         private void Stop()
         {
+            controller.IsUserSelected = false;
             this.controller.StopSong();
         }
 
@@ -196,16 +198,21 @@ namespace OrchestrionPlugin
                 ImGui.Separator();
 
                 ImGui.Columns(2, "footer columns", false);
-                ImGui.SetColumnWidth(-1, ImGui.GetWindowSize().X - 100);
+                ImGui.SetColumnWidth(-1, ImGui.GetWindowSize().X - 150);
 
                 ImGui.TextWrapped(this.selectedSong > 0 ? this.songs[this.selectedSong].Locations : string.Empty);
 
                 ImGui.NextColumn();
 
                 ImGui.SameLine();
-                ImGui.SetCursorPosX(ImGui.GetWindowSize().X - 100);
+                ImGui.SetCursorPosX(ImGui.GetWindowSize().X - 150);
                 ImGui.SetCursorPosY(ImGui.GetWindowSize().Y - 30);
 
+                if (ImGui.Button("Replacer"))
+                {
+                    ((Plugin)controller).songReplacementCfg.open = true;
+                }
+                ImGui.SameLine();
                 if (ImGui.Button("Stop"))
                 {
                     Stop();

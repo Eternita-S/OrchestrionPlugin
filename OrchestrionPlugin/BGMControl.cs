@@ -48,9 +48,11 @@ namespace OrchestrionPlugin
     class BGMControl : IDisposable
     {
         public ushort CurrentSongId { get; private set; }
+        public ushort CurrentSongId2 { get; private set; }
 
         public delegate void SongChangedHandler(ushort newSongId);
         public SongChangedHandler OnSongChanged;
+        public SongChangedHandler OnSongChanged2;
 
         // this seems to always be the number of bgm blocks that exist
         private const int ControlBlockCount = 12;
@@ -92,6 +94,7 @@ namespace OrchestrionPlugin
         private void Update()
         {
             var currentSong = (ushort)0;
+            var currentSong2 = (ushort)0;
             var activePriority = 0;
 
             this.Address.UpdateBGMControl();
@@ -103,14 +106,14 @@ namespace OrchestrionPlugin
 
                     // as far as I have seen, the control blocks are in priority order
                     // and the highest priority populated song is what the client current plays
-                    for (activePriority = 0; activePriority < ControlBlockCount; activePriority++)
+                    for (var ap = 0; ap < ControlBlockCount; ap++)
                     {
                         // TODO: everything here is awful and makes me sad
 
                         // This value isn't a collection of flags, but it seems like if it's 0 entirely, the song at this
                         // priority isn't playing
                         // Earlying out here since the checks below are already awful enough
-                        if (bgms[activePriority].songId == 0)
+                        if (bgms[ap].songId == 0)
                         {
                             continue;
                         }
@@ -127,20 +130,33 @@ namespace OrchestrionPlugin
                         // hears, but it will very quickly reset songId2 to 0 and then back, while songId3 doesn't change.
                         // This leads to song transition messages to the prio 11 zone music and then back to the overlaid prio 10 music
                         // over and over again, despite the actual music being played not changing.
-                        if (activePriority == previousSongInfo.priority && bgms[activePriority].songId2 == 0
-                            && previousSongInfo.songId != 0 && bgms[activePriority].songId3 == previousSongInfo.songId)
+                        if (ap == previousSongInfo.priority && bgms[ap].songId2 == 0
+                            && previousSongInfo.songId != 0 && bgms[ap].songId3 == previousSongInfo.songId)
                         {
 #if DEBUG
-                            PluginLog.Log("skipping change from {0} to {1} on prio {2}", previousSongInfo.songId, bgms[activePriority].songId2, activePriority);
+                            PluginLog.Log("skipping change from {0} to {1} on prio {2}", previousSongInfo.songId, bgms[ap].songId2, ap);
 #endif
                             return;
                         }
 
                         // TODO: might want to have a method to check if an id is valid, in case there are other weird cases
-                        if (bgms[activePriority].songId2 != 0 && bgms[activePriority].songId2 != 9999)
+                        if (bgms[ap].songId2 != 0 && bgms[ap].songId2 != 9999)
                         {
-                            currentSong = bgms[activePriority].songId2;
-                            break;
+                            if (currentSong == 0)
+                            {
+                                currentSong = bgms[ap].songId2;
+                                activePriority = ap;
+                                if (ap > 0)
+                                {
+                                    currentSong2 = currentSong;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                currentSong2 = bgms[ap].songId2;
+                                break;
+                            }
                         }
                     }
                 }
@@ -157,6 +173,16 @@ namespace OrchestrionPlugin
                 OnSongChanged?.Invoke(currentSong);
 
                 previousSongInfo.Set(activePriority, currentSong);
+            }
+
+            if (CurrentSongId2 != currentSong2)
+            {
+#if DEBUG
+                PluginLog.Log($"Area song changed to {currentSong2} ");
+#endif
+                CurrentSongId2 = currentSong2;
+
+                OnSongChanged2?.Invoke(currentSong2);
             }
         }
 

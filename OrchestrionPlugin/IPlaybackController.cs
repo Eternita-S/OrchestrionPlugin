@@ -5,6 +5,7 @@ namespace OrchestrionPlugin
     {
         int CurrentSong { get; }
         bool EnableFallbackPlayer { get; set; }
+        bool IsUserSelected { get; set; }
         void PlaySong(int songId);
         void StopSong();
 
