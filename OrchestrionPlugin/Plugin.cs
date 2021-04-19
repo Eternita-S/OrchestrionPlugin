@@ -40,7 +40,7 @@ namespace OrchestrionPlugin
             this.configuration.Initialize(pluginInterface);
             this.enableFallbackPlayer = this.configuration.UseOldPlayback;
             
-            this.localDir = Path.GetDirectoryName("Y:\\Users\\LSS\\source\\repos\\OrchestrionPlugin\\OrchestrionPlugin\\bin\\Debug\\"/*Assembly.GetExecutingAssembly().Location*/);
+            this.localDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
             var songlistPath = Path.Combine(this.localDir, songListFile);
             this.songList = new SongList(songlistPath, this.configuration, this, this);
