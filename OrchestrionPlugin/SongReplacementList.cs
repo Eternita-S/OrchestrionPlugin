@@ -72,7 +72,9 @@ namespace OrchestrionPlugin
                 {
                     var has = p.configuration.SongReplacements.ContainsKey(i.Value.Id);
                     if (onlyModified && !has) continue;
-                    if (filter.Length > 0 && !i.Value.Id.ToString().Contains(filter) && !i.Value.Name.ToLower().Contains(filter.ToLower())) continue;
+                    if (filter.Length > 0 && !i.Value.Id.ToString().Contains(filter)
+                        && !i.Value.Name.ToLower().Contains(filter.ToLower())
+                        && !i.Value.Locations.ToLower().Contains(filter.ToLower())) continue;
                     var colored = false;
                     if (has)
                     {
@@ -80,7 +82,8 @@ namespace OrchestrionPlugin
                         colored = true;
                     }
                     ImGui.SetNextItemWidth(ImGui.GetColumnWidth());
-                    if (ImGui.BeginCombo("##" + i.Key, (i.Value.Id == p.bgmControl.CurrentSongId2?"> ":"")+i.Value.Id + " | " + i.Value.Name))
+                    if (ImGui.BeginCombo("##" + i.Key, (i.Value.Id == p.bgmControl.CurrentSongId2?"> ":"")
+                        +i.Value.Id + " | " + i.Value.Name + " ("+i.Value.Locations+")"))
                     {
                         if (colored)
                         {
@@ -96,9 +99,11 @@ namespace OrchestrionPlugin
                         ImGui.Checkbox("Show only selected", ref onlySelected);
                         foreach (var s in p.songList.songs)
                         {
-                            if (filter2.Length > 0 && !s.Value.Id.ToString().Contains(filter2) && !s.Value.Name.ToLower().Contains(filter2.ToLower())) continue;
+                            if (filter2.Length > 0 && !s.Value.Id.ToString().Contains(filter2)
+                                && !s.Value.Name.ToLower().Contains(filter2.ToLower())
+                                && !s.Value.Locations.ToLower().Contains(filter2.ToLower())) continue;
                             if ((!onlySelected || (has && p.configuration.SongReplacements[i.Value.Id].Contains(s.Value.Id)))
-                                && SongButton(s.Value.Id + " | " + s.Value.Name + "##" + i.Key,
+                                && SongButton(s.Value.Id + " | " + s.Value.Name + " ("+s.Value.Locations+")" + "##" + i.Key,
                                 has && p.configuration.SongReplacements[i.Value.Id].Contains(s.Value.Id)))
                             {
                                 if (!has) p.configuration.SongReplacements.Add(i.Value.Id, new HashSet<int>());

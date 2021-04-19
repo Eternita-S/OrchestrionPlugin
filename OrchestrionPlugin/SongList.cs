@@ -216,6 +216,7 @@ namespace OrchestrionPlugin
                 if (ImGui.Button("Stop"))
                 {
                     Stop();
+                    ((Plugin)controller).HandleSongChanged2(((Plugin)controller).bgmControl.CurrentSongId2);
                 }
 
                 ImGui.SameLine();
